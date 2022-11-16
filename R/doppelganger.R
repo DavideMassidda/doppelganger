@@ -52,7 +52,7 @@ doppelganger <- function(data, variables=NULL, priority=c("centrality","raw_orde
     # Convert the correlation matrix in a tabular format
     corrs[lower.tri(corrs)] <- NA
     corrs <- corrs %>%
-        data.frame() %>%
+        data.frame(check.names=FALSE) %>%
         tibble::rownames_to_column("v1") %>%
         tidyr::pivot_longer(names_to="v2", values_to="cor", -.data$v1) %>%
         dplyr::filter(!is.na(.data$cor)) %>%

@@ -1,7 +1,7 @@
 Package: doppelganger
 Type: Package
 Title: Fight doppelganger variables
-Version: 0.1.0
+Version: 0.1.1
 Author: Davide Massidda
 Maintainer: The package maintainer <d.massidda@kode-solutions.net>
 Description: Instruments to search and remove redundant variables.
