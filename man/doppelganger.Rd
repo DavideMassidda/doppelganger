@@ -36,6 +36,6 @@ for each variable, and sorting then accordingly.
 \dontrun{
 data(measures)
 dg <- doppelganger(measures, threshold=0.7)
-qgraph::qgraph(cor(measures), minimum=0.65, edge.labels=TRUE, layout="spring")
+qgraph::qgraph(dg$cor_matrix, minimum=0.65, edge.labels=TRUE, layout="spring")
 }
 }

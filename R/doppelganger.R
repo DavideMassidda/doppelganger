@@ -18,7 +18,7 @@
 #' \dontrun{
 #' data(measures)
 #' dg <- doppelganger(measures, threshold=0.7)
-#' qgraph::qgraph(cor(measures), minimum=0.65, edge.labels=TRUE, layout="spring")
+#' qgraph::qgraph(dg$cor_matrix, minimum=0.65, edge.labels=TRUE, layout="spring")
 #' }
 #' @export
 doppelganger <- function(data, variables=NULL, priority=c("centrality","raw_order"), threshold=0.9) {
@@ -51,6 +51,17 @@ doppelganger <- function(data, variables=NULL, priority=c("centrality","raw_orde
     }
     # Reorder the correlation matrix according to the variable importance
     corrs <- corrs[variables, variables]
+    # Prepare the output list
+    out <- list(
+        variables=variables,
+        priority=priority,
+        importance=importance,
+        threshold=threshold,
+        cor_matrix=corrs,
+        cor_table=NA,
+        keep=variables,
+        drop=character(0)
+    )
     # Convert the correlation matrix in a tabular format
     corrs[lower.tri(corrs)] <- NA
     corrs <- corrs %>%
@@ -59,20 +70,11 @@ doppelganger <- function(data, variables=NULL, priority=c("centrality","raw_orde
         tidyr::pivot_longer(names_to="v2", values_to="cor", -.data$v1) %>%
         dplyr::filter(!is.na(.data$cor)) %>%
         dplyr::mutate(is_alias=abs(.data$cor)>=threshold)
+    out$cor_table <- corrs
     # Isolate the couples of aliases from the correlation table
     alias <-  corrs %>%
         dplyr::filter(!is.na(.data$cor) & .data$is_alias) %>%
         dplyr::select(.data$v1, .data$v2)
-    # Prepare the output list
-    out <- list(
-        variables=variables,
-        priority=priority,
-        importance=importance,
-        threshold=threshold,
-        corrs=corrs,
-        keep=variables,
-        drop=character(0)
-    )
     # Iterate the alias table removing doppelgangers
     if(nrow(alias)>0) {
         corrs <- corrs %>%
@@ -123,7 +125,7 @@ doppelganger <- function(data, variables=NULL, priority=c("centrality","raw_orde
 #' @param variable The variable of interest.
 #' @export
 inspect_corrs <- function(dg_object, variable) {
-    dg_object$corrs %>%
+    dg_object$cor_table %>%
         dplyr::filter(.data$v1==variable | .data$v2==variable) %>%
         dplyr::mutate(
             v1 = ifelse(.data$v1==variable, "", .data$v1),
