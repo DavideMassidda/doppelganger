@@ -27,10 +27,12 @@ doppelganger <- function(data, variables=NULL, priority=c("centrality","raw_orde
         variables <- colnames(data)
     }
     # Calculate the correlation matrix
-    corrs <- data %>%
-        dplyr::select(tidyselect::all_of(variables)) %>%
-        cor(use="pairwise.complete.obs") %>%
-        `diag<-`(NA)
+    corrs <- suppressWarnings(
+        data %>%
+            dplyr::select(tidyselect::all_of(variables)) %>%
+            cor(use="pairwise.complete.obs") %>%
+            `diag<-`(NA)
+    )
     # Reorder the variables according their importance
     n_vars <- length(variables)
     importance <- rep.int(NA, n_vars)
@@ -59,7 +61,7 @@ doppelganger <- function(data, variables=NULL, priority=c("centrality","raw_orde
         dplyr::mutate(is_alias=abs(.data$cor)>=threshold)
     # Isolate the couples of aliases from the correlation table
     alias <-  corrs %>%
-        dplyr::filter(.data$is_alias) %>%
+        dplyr::filter(!is.na(.data$cor) & .data$is_alias) %>%
         dplyr::select(.data$v1, .data$v2)
     # Prepare the output list
     out <- list(
