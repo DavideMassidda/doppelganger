@@ -18,8 +18,8 @@ doppelganger(
 
 \item{priority}{Ranking method to prioritize variables. When "Centrality" is
 selected, variables with higher mean absolute correlation will have higher
-priority. "Raw order" prioritize variables using their position within the
-vector \code{variables}.}
+priority (see details). "Raw order" prioritize variables using their position
+within the vector \code{variables}.}
 
 \item{threshold}{Correlation cut-off (absolute value) to identify doppelgangers.
 Variables with absolute correlation values equal or greater to this value will be
@@ -30,12 +30,24 @@ Analyze correlations to select a subset of non-redundant variables.
 }
 \details{
 The variable priority is established by calculating a centrality index
-for each variable, and sorting then accordingly.
+for each variable, and sorting then accordingly. The priority index of a variable
+is calculated as the weighted mean of the absolute values of its correlations.
+Weights are obtained counting the data used to calculate each correlation.
+The weighting strategy is applied in order to prioritize variables with less
+missing data or where missing data match missing data of other variables.
 }
 \examples{
 \dontrun{
 data(measures)
 dg <- doppelganger(measures, threshold=0.7)
-qgraph::qgraph(dg$cor_matrix, minimum=0.65, edge.labels=TRUE, layout="spring")
+var_grp <- list(
+    Selected = apply(sapply(dg$keep, "==", dg$variables), 2, which),
+     Dropped = apply(sapply(dg$drop, "==", dg$variables), 2, which)
+)
+qgraph::qgraph(
+    dg$cor_matrix, layout="spring", #vsize=2,
+    minimum=0.3, edge.labels=TRUE,
+    groups=var_grp, colors=c("orange","gray90")
+)
 }
 }

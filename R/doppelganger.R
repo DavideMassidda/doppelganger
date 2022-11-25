@@ -1,3 +1,16 @@
+.get_importance <- function(data, corrs, n_vars) {
+    # Calculate the representativeness for each variable
+    check <- !is.na(data)
+    sizes <- matrix(nrow=n_vars, ncol=n_vars)
+    for(i in 1:(n_vars-1L)) {
+        for(j in (i+1L):n_vars) {
+            sizes[i,j] <- sum(check[,i] & check[,j]) -> sizes[j,i]
+        }
+    }
+    importance <- colSums(abs(corrs)*sizes, na.rm=TRUE)/colSums(sizes, na.rm=TRUE)
+    return(importance)
+}
+
 #' Find Doppelgangers
 #' @name doppelganger
 #' @importFrom magrittr %>%
@@ -7,50 +20,59 @@
 #' @param variables Variables included in \code{data} to consider.
 #' @param priority Ranking method to prioritize variables. When "Centrality" is
 #' selected, variables with higher mean absolute correlation will have higher
-#' priority. "Raw order" prioritize variables using their position within the
-#' vector \code{variables}.
+#' priority (see details). "Raw order" prioritize variables using their position
+#' within the vector \code{variables}.
 #' @param threshold Correlation cut-off (absolute value) to identify doppelgangers.
 #' Variables with absolute correlation values equal or greater to this value will be
 #' considered aliases of each other.
 #' @details The variable priority is established by calculating a centrality index
-#' for each variable, and sorting then accordingly.
+#' for each variable, and sorting then accordingly. The priority index of a variable
+#' is calculated as the weighted mean of the absolute values of its correlations.
+#' Weights are obtained counting the data used to calculate each correlation.
+#' The weighting strategy is applied in order to prioritize variables with less
+#' missing data or where missing data match missing data of other variables.
 #' @examples
 #' \dontrun{
 #' data(measures)
 #' dg <- doppelganger(measures, threshold=0.7)
-#' qgraph::qgraph(dg$cor_matrix, minimum=0.65, edge.labels=TRUE, layout="spring")
+#' var_grp <- list(
+#'     Selected = apply(sapply(dg$keep, "==", dg$variables), 2, which),
+#'      Dropped = apply(sapply(dg$drop, "==", dg$variables), 2, which)
+#' )
+#' qgraph::qgraph(
+#'     dg$cor_matrix, layout="spring", #vsize=2,
+#'     minimum=0.3, edge.labels=TRUE,
+#'     groups=var_grp, colors=c("orange","gray90")
+#' )
 #' }
 #' @export
 doppelganger <- function(data, variables=NULL, priority=c("centrality","raw_order"), threshold=0.9) {
-    # Find variables (if not provided)
+    # Find and select variables
     if(is.null(variables)) {
         variables <- colnames(data)
     }
+    data <- data[,variables]
     # Calculate the correlation matrix
-    corrs <- suppressWarnings(
-        data %>%
-            dplyr::select(tidyselect::all_of(variables)) %>%
-            cor(use="pairwise.complete.obs") %>%
-            `diag<-`(NA)
-    )
+    corrs <- cor(data, use="pairwise.complete.obs")
+    diag(corrs) <- NA
     # Reorder the variables according their importance
     n_vars <- length(variables)
     importance <- rep.int(NA, n_vars)
     names(importance) <- variables
     priority <- match.arg(priority)
-    if(priority!="order") {
-        weights <- abs(corrs)
+    if(priority!="raw_order") {
         #if(priority=="separation") {
+        #    weights <- abs(corrs)
         #    to_correct <- !is.na(weights) & weights<threshold
         #    if(any(to_correct)) {
         #        weights[to_correct] <- 1-weights[to_correct]
         #    }
-        #}
-        importance <- sort(colSums(weights, na.rm=TRUE)/n_vars, decreasing=TRUE)
+        #} # ...now use weights instead of corrs
+        importance <- .get_importance(data, corrs, n_vars)
         variables <- names(importance)
+        # Reorder the correlation matrix according to the variable importance
+        corrs <- corrs[variables, variables]
     }
-    # Reorder the correlation matrix according to the variable importance
-    corrs <- corrs[variables, variables]
     # Prepare the output list
     out <- list(
         variables=variables,
