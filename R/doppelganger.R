@@ -7,6 +7,7 @@
             sizes[i,j] <- sum(check[,i] & check[,j]) -> sizes[j,i]
         }
     }
+    diag(sizes) <- NA
     importance <- colSums(abs(corrs)*sizes, na.rm=TRUE)/colSums(sizes, na.rm=TRUE)
     return(importance)
 }
