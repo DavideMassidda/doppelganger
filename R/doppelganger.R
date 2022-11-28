@@ -1,4 +1,4 @@
-.get_importance <- function(data, corrs, n_vars) {
+.get_centrality <- function(data, corrs, n_vars) {
     # Calculate the representativeness for each variable
     check <- !is.na(data)
     sizes <- matrix(nrow=n_vars, ncol=n_vars)
@@ -8,8 +8,9 @@
         }
     }
     diag(sizes) <- NA
-    importance <- colSums(abs(corrs)*sizes, na.rm=TRUE)/colSums(sizes, na.rm=TRUE)
-    return(importance)
+    centrality <- colSums(abs(corrs)*sizes, na.rm=TRUE)/colSums(sizes, na.rm=TRUE)
+    centrality <- sort(centrality, decreasing=TRUE)
+    return(centrality)
 }
 
 #' Find Doppelgangers
@@ -56,10 +57,10 @@ doppelganger <- function(data, variables=NULL, priority=c("centrality","raw_orde
     # Calculate the correlation matrix
     corrs <- cor(data, use="pairwise.complete.obs")
     diag(corrs) <- NA
-    # Reorder the variables according their importance
+    # Reorder the variables according their centrality
     n_vars <- length(variables)
-    importance <- rep.int(NA, n_vars)
-    names(importance) <- variables
+    centrality <- rep.int(NA, n_vars)
+    names(centrality) <- variables
     priority <- match.arg(priority)
     if(priority!="raw_order") {
         #if(priority=="separation") {
@@ -69,16 +70,16 @@ doppelganger <- function(data, variables=NULL, priority=c("centrality","raw_orde
         #        weights[to_correct] <- 1-weights[to_correct]
         #    }
         #} # ...now use weights instead of corrs
-        importance <- .get_importance(data, corrs, n_vars)
-        variables <- names(importance)
-        # Reorder the correlation matrix according to the variable importance
+        centrality <- .get_centrality(data, corrs, n_vars)
+        variables <- names(centrality)
+        # Reorder the correlation matrix according to the variable centrality
         corrs <- corrs[variables, variables]
     }
     # Prepare the output list
     out <- list(
         variables=variables,
         priority=priority,
-        importance=importance,
+        centrality=centrality,
         threshold=threshold,
         cor_matrix=corrs,
         cor_table=NA,
