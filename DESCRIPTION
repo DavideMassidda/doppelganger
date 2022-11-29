@@ -1,10 +1,10 @@
 Package: doppelganger
 Type: Package
-Title: Fight doppelganger variables
-Version: 0.3.1
+Title: Doppelgangers
+Version: 0.3.2
 Author: Davide Massidda
 Maintainer: The package maintainer <d.massidda@kode-solutions.net>
-Description: Instruments to search and remove redundant variables.
+Description: Search and remove redundant variables by correlation analysis.
 Imports: magrittr, rlang, tibble, dplyr, tidyr
 Suggests: qgraph
 License: MIT
