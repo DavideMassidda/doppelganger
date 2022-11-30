@@ -12,5 +12,6 @@ inspect_corrs(dg_object, variable)
 \item{variable}{The variable of interest.}
 }
 \description{
-Given a variable, extracts the correlations with other variables in a data set.
+Given one or more variables, extracts the correlations with other
+variables in the source data set.
 }

@@ -30,9 +30,9 @@ Analyze correlations to select a subset of non-redundant variables.
 }
 \details{
 The variable priority is established by calculating a centrality index
-for each variable, and sorting then accordingly. The priority index of a variable
+for each variable and sorting them accordingly. The priority index of a variable
 is calculated as the weighted mean of the absolute values of its correlations.
-Weights are obtained counting the data used to calculate each correlation.
+Weights are obtained by counting the data used to calculate each correlation.
 The weighting strategy is applied in order to prioritize variables with less
 missing data or where missing data match missing data of other variables.
 }

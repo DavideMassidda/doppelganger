@@ -1,18 +1,3 @@
-.get_centrality <- function(data, corrs, n_vars) {
-    # Calculate the representativeness for each variable
-    check <- !is.na(data)
-    sizes <- matrix(nrow=n_vars, ncol=n_vars)
-    for(i in 1:(n_vars-1L)) {
-        for(j in (i+1L):n_vars) {
-            sizes[i,j] <- sum(check[,i] & check[,j]) -> sizes[j,i]
-        }
-    }
-    diag(sizes) <- NA
-    centrality <- colSums(abs(corrs)*sizes, na.rm=TRUE)/colSums(sizes, na.rm=TRUE)
-    centrality <- sort(centrality, decreasing=TRUE)
-    return(centrality)
-}
-
 #' Find Doppelgangers
 #' @name doppelganger
 #' @importFrom magrittr %>%
@@ -28,9 +13,9 @@
 #' Variables with absolute correlation values equal or greater to this value will be
 #' considered aliases of each other.
 #' @details The variable priority is established by calculating a centrality index
-#' for each variable, and sorting then accordingly. The priority index of a variable
+#' for each variable and sorting them accordingly. The priority index of a variable
 #' is calculated as the weighted mean of the absolute values of its correlations.
-#' Weights are obtained counting the data used to calculate each correlation.
+#' Weights are obtained by counting the data used to calculate each correlation.
 #' The weighting strategy is applied in order to prioritize variables with less
 #' missing data or where missing data match missing data of other variables.
 #' @examples
@@ -53,48 +38,56 @@ doppelganger <- function(data, variables=NULL, priority=c("centrality","raw_orde
     if(is.null(variables)) {
         variables <- colnames(data)
     }
+    n_vars <- length(variables)
     data <- data[,variables]
     # Calculate the correlation matrix
     corrs <- cor(data, use="pairwise.complete.obs")
     diag(corrs) <- NA
+    # Empty matrix to collect sizes of correlations
+    sizes <- matrix(nrow=n_vars, ncol=n_vars, dimnames=list(variables, variables))
     # Reorder the variables according their centrality
-    n_vars <- length(variables)
     centrality <- rep.int(NA, n_vars)
     names(centrality) <- variables
     priority <- match.arg(priority)
     if(priority!="raw_order") {
-        #if(priority=="separation") {
-        #    weights <- abs(corrs)
-        #    to_correct <- !is.na(weights) & weights<threshold
-        #    if(any(to_correct)) {
-        #        weights[to_correct] <- 1-weights[to_correct]
-        #    }
-        #} # ...now use weights instead of corrs
-        centrality <- .get_centrality(data, corrs, n_vars)
+        # Calculate the size of each correlation
+        check <- !is.na(data)
+        couples <- combn(seq_len(ncol(check)), 2)
+        weights <- sapply(
+            seq_len(ncol(couples)),
+            function(i) {
+                sum(check[,couples[,i][1]] & check[,couples[,i][2]])
+            }
+        )
+        sizes[lower.tri(sizes)] <- weights -> sizes[upper.tri(sizes)]
+        # Calculate the representativeness of each variable
+        centrality <- colSums(abs(corrs)*sizes, na.rm=TRUE)/colSums(sizes, na.rm=TRUE)
+        centrality <- sort(centrality, decreasing=TRUE)
+        # Reorder the vector of variables
         variables <- names(centrality)
-        # Reorder the correlation matrix according to the variable centrality
+        # Reorder the correlation matrix
         corrs <- corrs[variables, variables]
     }
     # Prepare the output list
     out <- list(
         variables=variables,
         priority=priority,
-        centrality=centrality,
         threshold=threshold,
+        size_matrix=sizes,
         cor_matrix=corrs,
-        cor_table=NA,
+        cor_table=NULL,
+        centrality=centrality,
         keep=variables,
         drop=character(0)
     )
     # Convert the correlation matrix in a tabular format
     corrs[lower.tri(corrs)] <- NA
-    corrs <- corrs %>%
+    out$cor_table <- corrs <- corrs %>%
         data.frame(check.names=FALSE) %>%
         tibble::rownames_to_column("v1") %>%
         tidyr::pivot_longer(names_to="v2", values_to="cor", -.data$v1) %>%
         dplyr::filter(!is.na(.data$cor)) %>%
         dplyr::mutate(is_alias=abs(.data$cor)>=threshold)
-    out$cor_table <- corrs
     # Isolate the couples of aliases from the correlation table
     alias <-  corrs %>%
         dplyr::filter(!is.na(.data$cor) & .data$is_alias) %>%
@@ -144,13 +137,14 @@ doppelganger <- function(data, variables=NULL, priority=c("centrality","raw_orde
 #' @name inspect_corrs
 #' @importFrom magrittr %>%
 #' @importFrom rlang .data
-#' @description Given a variable, extracts the correlations with other variables in a data set.
+#' @description Given one or more variables, extracts the correlations with other
+#' variables in the source data set.
 #' @param dg_object An object of class \code{doppelganger}.
 #' @param variable The variable of interest.
 #' @export
 inspect_corrs <- function(dg_object, variable) {
     dg_object$cor_table %>%
-        dplyr::filter(.data$v1==variable | .data$v2==variable) %>%
+        dplyr::filter(.data$v1 %in% variable | .data$v2 %in% variable) %>%
         dplyr::mutate(
             v1 = ifelse(.data$v1==variable, "", .data$v1),
             v2 = ifelse(.data$v2==variable, "", .data$v2),
@@ -159,10 +153,3 @@ inspect_corrs <- function(dg_object, variable) {
         dplyr::select(.data$variable, .data$is_alias, .data$cor) %>%
         dplyr::arrange(dplyr::desc(abs(.data$cor)))
 }
-
-#' Simulated data
-#' @name measures
-#' Simulated data matrix to show hoe the package \code{doppelganger} works.
-#' @docType data
-#' @keywords data
-#' @export
