@@ -7,17 +7,22 @@
 #' @param variables Variables included in \code{data} to consider.
 #' @param priority Ranking method to prioritize variables. When "Centrality" is
 #' selected, variables with higher mean absolute correlation will have higher
-#' priority (see details). "Raw order" prioritize variables using their position
-#' within the vector \code{variables}.
+#' priority (see details). On the opposite, when "Peripherality" is selected,
+#' the algorithm tries to keep the most peripheral variables, dropping variables
+#' with elevated levels of correlation. "Raw order" prioritize variables using
+#' their position within the vector \code{variables}.
 #' @param threshold Correlation cut-off (absolute value) to identify doppelgangers.
 #' Variables with absolute correlation values equal or greater to this value will be
 #' considered aliases of each other.
 #' @details The variable priority is established by calculating a centrality index
-#' for each variable and sorting them accordingly. The priority index of a variable
-#' is calculated as the weighted mean of the absolute values of its correlations.
-#' Weights are obtained by counting the data used to calculate each correlation.
-#' The weighting strategy is applied in order to prioritize variables with less
-#' missing data or where missing data match missing data of other variables.
+#' for each variable and sorting them accordingly. When \code{priority} is "Centrality",
+#' the function sort variables from the most central to the most peripheral.
+#' When \code{priority} is "Peripherality", the function sort variables from the most
+#' peripheral to the most central. The centrality index is calculated as the
+#' weighted mean of the absolute values of its correlations. Weights are obtained
+#' by counting the data used to calculate each correlation. This weighting strategy
+#' is applied in order to prioritize variables with less missing data or where
+#' missing data match missing data of other variables.
 #' @examples
 #' \dontrun{
 #' data(measures)
@@ -33,7 +38,7 @@
 #' )
 #' }
 #' @export
-doppelganger <- function(data, variables=NULL, priority=c("centrality","raw_order"), threshold=0.9) {
+doppelganger <- function(data, variables=NULL, priority=c("centrality","peripherality","raw_order"), threshold=0.9) {
     # Find and select variables
     if(is.null(variables)) {
         variables <- colnames(data)
@@ -46,10 +51,11 @@ doppelganger <- function(data, variables=NULL, priority=c("centrality","raw_orde
     # Empty matrix to collect sizes of correlations
     sizes <- matrix(nrow=n_vars, ncol=n_vars, dimnames=list(variables, variables))
     # Reorder the variables according their centrality
-    centrality <- rep.int(NA, n_vars)
-    names(centrality) <- variables
     priority <- match.arg(priority)
-    if(priority!="raw_order") {
+    if(priority=="raw_order") {
+        degree <- rep.int(NA, n_vars)
+        names(degree) <- variables
+    } else {
         # Calculate the size of each correlation
         check <- !is.na(data)
         couples <- combn(seq_len(ncol(check)), 2)
@@ -61,12 +67,15 @@ doppelganger <- function(data, variables=NULL, priority=c("centrality","raw_orde
         )
         sizes[lower.tri(sizes)] <- weights -> sizes[upper.tri(sizes)]
         # Calculate the representativeness of each variable
-        centrality <- colSums(abs(corrs)*sizes, na.rm=TRUE)/colSums(sizes, na.rm=TRUE)
-        centrality <- sort(centrality, decreasing=TRUE)
+        degree <- colSums(abs(corrs)*sizes, na.rm=TRUE)/colSums(sizes, na.rm=TRUE)
+        # Sort degree according to the direction of the algorithm
+        direction <- priority=="centrality"
+        degree <- sort(degree, decreasing=direction)
         # Reorder the vector of variables
-        variables <- names(centrality)
-        # Reorder the correlation matrix
+        variables <- names(degree)
+        # Reorder the matrices
         corrs <- corrs[variables, variables]
+        sizes <- sizes[variables, variables]
     }
     # Prepare the output list
     out <- list(
@@ -76,7 +85,7 @@ doppelganger <- function(data, variables=NULL, priority=c("centrality","raw_orde
         size_matrix=sizes,
         cor_matrix=corrs,
         cor_table=NULL,
-        centrality=centrality,
+        degree=degree,
         keep=variables,
         drop=character(0)
     )

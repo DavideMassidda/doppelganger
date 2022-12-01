@@ -7,7 +7,7 @@
 doppelganger(
   data,
   variables = NULL,
-  priority = c("centrality", "raw_order"),
+  priority = c("centrality", "peripherality", "raw_order"),
   threshold = 0.9
 )
 }
@@ -18,8 +18,10 @@ doppelganger(
 
 \item{priority}{Ranking method to prioritize variables. When "Centrality" is
 selected, variables with higher mean absolute correlation will have higher
-priority (see details). "Raw order" prioritize variables using their position
-within the vector \code{variables}.}
+priority (see details). On the opposite, when "Peripherality" is selected,
+the algorithm tries to keep the most peripheral variables, dropping variables
+with elevated levels of correlation. "Raw order" prioritize variables using
+their position within the vector \code{variables}.}
 
 \item{threshold}{Correlation cut-off (absolute value) to identify doppelgangers.
 Variables with absolute correlation values equal or greater to this value will be
@@ -30,11 +32,14 @@ Analyze correlations to select a subset of non-redundant variables.
 }
 \details{
 The variable priority is established by calculating a centrality index
-for each variable and sorting them accordingly. The priority index of a variable
-is calculated as the weighted mean of the absolute values of its correlations.
-Weights are obtained by counting the data used to calculate each correlation.
-The weighting strategy is applied in order to prioritize variables with less
-missing data or where missing data match missing data of other variables.
+for each variable and sorting them accordingly. When \code{priority} is "Centrality",
+the function sort variables from the most central to the most peripheral.
+When \code{priority} is "Peripherality", the function sort variables from the most
+peripheral to the most central. The centrality index is calculated as the
+weighted mean of the absolute values of its correlations. Weights are obtained
+by counting the data used to calculate each correlation. This weighting strategy
+is applied in order to prioritize variables with less missing data or where
+missing data match missing data of other variables.
 }
 \examples{
 \dontrun{
