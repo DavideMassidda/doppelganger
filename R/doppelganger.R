@@ -1,3 +1,4 @@
+utils::globalVariables(".")
 #' Find Doppelgangers
 #' @name doppelganger
 #' @importFrom magrittr %>%
