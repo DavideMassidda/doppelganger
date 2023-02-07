@@ -15,6 +15,7 @@ utils::globalVariables(".")
 #' @param threshold Correlation cut-off (absolute value) to identify doppelgangers.
 #' Variables with absolute correlation values equal or greater to this value will be
 #' considered aliases of each other.
+#' @param force_keep Names of variable to force keep (if there is any).
 #' @details The variable priority is established by calculating a centrality index
 #' for each variable and sorting them accordingly. When \code{priority} is "Centrality",
 #' the function sort variables from the most central to the most peripheral.
@@ -39,7 +40,7 @@ utils::globalVariables(".")
 #' )
 #' }
 #' @export
-doppelganger <- function(data, variables=NULL, priority=c("centrality","peripherality","raw_order"), threshold=0.9) {
+doppelganger <- function(data, variables=NULL, force_keep=NULL, priority=c("centrality","peripherality","raw_order"), threshold=0.9) {
     # Find and select variables
     if(is.null(variables)) {
         variables <- colnames(data)
@@ -120,7 +121,12 @@ doppelganger <- function(data, variables=NULL, priority=c("centrality","peripher
             # If there is any alias for the first variable:
             if(length(var1_alias)>0) {
                 # Isolate doppelgangers
-                var_delete <- var1_alias[var1_alias != variables[1]]
+                var_recommended <- var1_alias %in% force_keep
+                if(any(var_recommended)) {
+                    var_delete <- var1_alias[!var_recommended]
+                } else {
+                    var_delete <- var1_alias[var1_alias != variables[1]]
+                }
                 # Add doppelgangers to the drop list
                 drop <- c(drop, var_delete)
                 # Remove var1 and its aliases from the running list of variables

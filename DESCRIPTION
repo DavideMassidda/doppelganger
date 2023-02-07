@@ -1,7 +1,7 @@
 Package: doppelganger
 Type: Package
 Title: Doppelgangers
-Version: 1.1.1
+Version: 1.1.1.999
 Author: Davide Massidda
 Maintainer: The package maintainer <d.massidda@kode-solutions.net>
 Description: Search and remove redundant variables by correlation analysis.
