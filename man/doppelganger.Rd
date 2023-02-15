@@ -7,6 +7,7 @@
 doppelganger(
   data,
   variables = NULL,
+  force_keep = NULL,
   priority = c("centrality", "peripherality", "raw_order"),
   threshold = 0.9
 )
@@ -15,6 +16,8 @@ doppelganger(
 \item{data}{Data table source.}
 
 \item{variables}{Variables included in \code{data} to consider.}
+
+\item{force_keep}{Names of variable to force keep (if there is any).}
 
 \item{priority}{Ranking method to prioritize variables. When "Centrality" is
 selected, variables with higher mean absolute correlation will have higher
